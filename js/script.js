@@ -571,6 +571,11 @@ function saveSetting(setting, value) {
 
 let head;
 
+// =========================================================================
+// NEW: PARENT STRUCTURAL CONTAINERS FOR ANATOMICAL TRACKING
+// =========================================================================
+const headContainer = new THREE.Group();
+
 const renderer = new THREE.WebGLRenderer({canvas});
 
 const camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
@@ -578,6 +583,9 @@ camera.position.set(0, 0, 30);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('black');
+
+// Add the parent container to the scene
+scene.add(headContainer);
 
 {
   const skyColor = 0xB1E1FF;     // light blue
@@ -597,6 +605,59 @@ scene.background = new THREE.Color('black');
   scene.add(light.target);
 }
 
+// Helper utility to construct custom 3D Torus canals dynamically
+function createCanalRing(color) {
+  const geometry = new THREE.TorusGeometry(1.2, 0.12, 8, 32);
+  const material = new THREE.MeshPhongMaterial({
+    color: color,
+    transparent: true,
+    opacity: 0.7,
+    shininess: 80
+  });
+  return new THREE.Mesh(geometry, material);
+}
+
+// Generate structural sub-groups for Left and Right Vestibular Apparatuses
+const leftEarGroup = new THREE.Group();
+const rightEarGroup = new THREE.Group();
+
+// Offset groups laterally (Modify spatial constraints depending on head.obj profile boundaries)
+leftEarGroup.position.set(4.5, 1.5, 0);
+rightEarGroup.position.set(-4.5, 1.5, 0);
+
+// --- LEFT VESTIBULAR APPARATUS MAPPING ---
+// Horizontal: 30-degree pitch backwards
+const leftHorizontal = createCanalRing(0x00ff00); // Green
+leftHorizontal.rotation.x = THREE.MathUtils.degToRad(30);
+leftEarGroup.add(leftHorizontal);
+
+// Anterior: 45-degree yaw outwards relative to sagittal axis
+const leftAnterior = createCanalRing(0xff0000); // Red
+leftAnterior.rotation.y = THREE.MathUtils.degToRad(45);
+leftEarGroup.add(leftAnterior);
+
+// Posterior: Orthogonal to anterior alignment matrix
+const leftPosterior = createCanalRing(0x0000ff); // Blue
+leftPosterior.rotation.y = THREE.MathUtils.degToRad(-45);
+leftEarGroup.add(leftPosterior);
+
+// --- RIGHT VESTIBULAR APPARATUS MAPPING (MIRRORED) ---
+const rightHorizontal = createCanalRing(0x00ff00); // Green
+rightHorizontal.rotation.x = THREE.MathUtils.degToRad(30);
+rightEarGroup.add(rightHorizontal);
+
+const rightAnterior = createCanalRing(0xff0000); // Red
+rightAnterior.rotation.y = THREE.MathUtils.degToRad(-45);
+rightEarGroup.add(rightAnterior);
+
+const rightPosterior = createCanalRing(0x0000ff); // Blue
+rightPosterior.rotation.y = THREE.MathUtils.degToRad(45);
+rightEarGroup.add(rightPosterior);
+
+// Populate master tracking container with sub-components
+headContainer.add(leftEarGroup);
+headContainer.add(rightEarGroup);
+
 {
   const objLoader = new OBJLoader();
 
@@ -606,7 +667,8 @@ scene.background = new THREE.Color('black');
     // Adjust this if the head appears too large/small.
     head.scale.set(1, 1, 1);
 
-    scene.add(root);
+    // Nest head into master coordinate container instead of raw scene environment
+    headContainer.add(root);
   });
 }
 
@@ -630,7 +692,8 @@ async function render() {
     camera.updateProjectionMatrix();
   }
 
-  if (head != undefined) {
+  // Apply tracking quaternions/angles to the unified headContainer group instead of just the head asset
+  if (headContainer != undefined) {
     if (angleType.value == "euler") {
       if (showCalibration) {
         // BNO055 Euler rotation
@@ -641,7 +704,7 @@ async function render() {
           'YZX'
         );
 
-        head.setRotationFromEuler(rotationEuler);
+        headContainer.setRotationFromEuler(rotationEuler);
       } else {
         let rotationEuler = new THREE.Euler(
           THREE.MathUtils.degToRad(orientation[2]),
@@ -650,7 +713,7 @@ async function render() {
           'YZX'
         );
 
-        head.setRotationFromEuler(rotationEuler);
+        headContainer.setRotationFromEuler(rotationEuler);
       }
     } else {
       let rotationQuaternion = new THREE.Quaternion(
@@ -660,7 +723,7 @@ async function render() {
         quaternion[0]
       );
 
-      head.setRotationFromQuaternion(rotationQuaternion);
+      headContainer.setRotationFromQuaternion(rotationQuaternion);
     }
   }
 
