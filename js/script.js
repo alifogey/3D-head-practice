@@ -607,7 +607,7 @@ scene.add(headContainer);
 
 // Helper utility to construct custom 3D Torus canals dynamically
 function createCanalRing(color) {
-  const geometry = new THREE.TorusGeometry(1.2, 0.12, 8, 32);
+  const geometry = new THREE.TorusGeometry(2.2, 0.18, 8, 32);
   const material = new THREE.MeshPhongMaterial({
     color: color,
     transparent: true,
@@ -622,8 +622,8 @@ const leftEarGroup = new THREE.Group();
 const rightEarGroup = new THREE.Group();
 
 // Offset groups laterally (Modify spatial constraints depending on head.obj profile boundaries)
-leftEarGroup.position.set(4.5, 1.5, 0);
-rightEarGroup.position.set(-4.5, 1.5, 0);
+leftEarGroup.position.set(7, 7.5, 0);
+rightEarGroup.position.set(-7, 7.5, 0);
 
 // --- LEFT VESTIBULAR APPARATUS MAPPING ---
 // Horizontal: 30-degree pitch backwards
